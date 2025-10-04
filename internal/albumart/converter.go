@@ -2,10 +2,12 @@ package albumart
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
+	"os"
 	"strings"
 
 	"github.com/nfnt/resize"
@@ -13,25 +15,65 @@ import (
 
 
 type ASCIIArt struct {
-	Width  int
-	Height int
-	Art    string
+	Width     int
+	Height    int
+	Art       string
+	ImageData []byte // Raw image data for terminal display
 }
+
+type TerminalType int
+
+const (
+	TerminalUnknown TerminalType = iota
+	TerminalITerm2
+	TerminalKitty
+	TerminalSixel
+)
 
 
 type Converter struct {
-	width  int
-	height int
-	chars  string
+	width        int
+	height       int
+	chars        string
+	terminalType TerminalType
 }
 
 
 func NewConverter(width, height int) *Converter {
 	return &Converter{
-		width:  width,
-		height: height,
-		chars:  " .:-=+*#%@", 
+		width:        width,
+		height:       height,
+		chars:        " .:-=+*#%@",
+		terminalType: detectTerminalType(),
 	}
+}
+
+// detectTerminalType detects the terminal type for image support
+func detectTerminalType() TerminalType {
+	termProgram := os.Getenv("TERM_PROGRAM")
+	term := os.Getenv("TERM")
+	
+	// Check for iTerm2
+	if termProgram == "iTerm.app" {
+		return TerminalITerm2
+	}
+	
+	// Check for Kitty
+	if termProgram == "kitty" || strings.Contains(term, "kitty") {
+		return TerminalKitty
+	}
+	
+	// Check for sixel support (some terminals like xterm)
+	if strings.Contains(term, "xterm") || strings.Contains(term, "sixel") {
+		return TerminalSixel
+	}
+	
+	return TerminalUnknown
+}
+
+// SupportsImages returns true if the terminal supports image display
+func (c *Converter) SupportsImages() bool {
+	return c.terminalType != TerminalUnknown
 }
 
 
@@ -40,25 +82,49 @@ func (c *Converter) ConvertImageToASCII(imageData []byte) (*ASCIIArt, error) {
 		return nil, fmt.Errorf("no image data provided")
 	}
 
-	
+	// Decode image
 	img, err := c.decodeImage(imageData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode image: %v", err)
 	}
 
-	
+	// Resize image for ASCII conversion
 	resized := resize.Resize(uint(c.width), uint(c.height), img, resize.Lanczos3)
 
-	
+	// Convert to ASCII
 	art := c.imageToASCII(resized)
 
+	// Store original image data for terminal display
+	var processedImageData []byte
+	if c.SupportsImages() {
+		// Resize image for terminal display (larger than ASCII)
+		terminalImg := resize.Resize(200, 200, img, resize.Lanczos3)
+		processedImageData, err = c.encodeImageForTerminal(terminalImg)
+		if err != nil {
+			// If encoding fails, we'll fallback to ASCII
+			processedImageData = nil
+		}
+	}
+
 	return &ASCIIArt{
-		Width:  c.width,
-		Height: c.height,
-		Art:    art,
+		Width:     c.width,
+		Height:    c.height,
+		Art:       art,
+		ImageData: processedImageData,
 	}, nil
 }
 
+
+// encodeImageForTerminal encodes image for terminal display
+func (c *Converter) encodeImageForTerminal(img image.Image) ([]byte, error) {
+	// Convert image to JPEG for terminal display
+	var buf bytes.Buffer
+	err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80})
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 
 func (c *Converter) decodeImage(data []byte) (image.Image, error) {
 	reader := bytes.NewReader(data)
@@ -173,6 +239,57 @@ func (a *ASCIIArt) GetColorizedASCII() string {
 	}
 
 	return strings.TrimSuffix(result.String(), "\n")
+}
+
+// GetTerminalImage returns the terminal image escape sequence if supported
+func (a *ASCIIArt) GetTerminalImage() string {
+	if len(a.ImageData) == 0 {
+		return ""
+	}
+
+	// Detect terminal type for image display
+	termProgram := os.Getenv("TERM_PROGRAM")
+	
+	if termProgram == "iTerm.app" {
+		return a.getITerm2Image()
+	} else if termProgram == "kitty" || strings.Contains(os.Getenv("TERM"), "kitty") {
+		return a.getKittyImage()
+	}
+	
+	return ""
+}
+
+// getITerm2Image returns iTerm2 image protocol escape sequence
+func (a *ASCIIArt) getITerm2Image() string {
+	if len(a.ImageData) == 0 {
+		return ""
+	}
+	
+	// iTerm2 image protocol
+	encoded := base64.StdEncoding.EncodeToString(a.ImageData)
+	return fmt.Sprintf("\033]1337;File=inline=1;width=25;height=12:%s\a", encoded)
+}
+
+// getKittyImage returns Kitty image protocol escape sequence
+func (a *ASCIIArt) getKittyImage() string {
+	if len(a.ImageData) == 0 {
+		return ""
+	}
+	
+	// Kitty image protocol (simplified)
+	encoded := base64.StdEncoding.EncodeToString(a.ImageData)
+	return fmt.Sprintf("\033_Gf=100,s=%d,v=%d,m=1;%s\033\\", len(a.ImageData), len(a.ImageData), encoded)
+}
+
+// GetDisplayContent returns either terminal image or colorized ASCII based on terminal support
+func (a *ASCIIArt) GetDisplayContent() string {
+	// Try to display actual image first
+	if terminalImage := a.GetTerminalImage(); terminalImage != "" {
+		return terminalImage
+	}
+	
+	// Fallback to ASCII art
+	return a.GetColorizedASCII()
 }
 
 

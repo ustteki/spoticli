@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+
 type ProgressBar struct {
 	width       int
 	position    time.Duration
@@ -15,12 +16,14 @@ type ProgressBar struct {
 	dragPos     float64
 }
 
+
 func NewProgressBar(width int) *ProgressBar {
 	return &ProgressBar{
 		width:     width,
 		isVisible: true,
 	}
 }
+
 
 func (pb *ProgressBar) Update(position, duration time.Duration) {
 	if !pb.isDragging {
@@ -29,17 +32,21 @@ func (pb *ProgressBar) Update(position, duration time.Duration) {
 	pb.duration = duration
 }
 
+
 func (pb *ProgressBar) SetVisible(visible bool) {
 	pb.isVisible = visible
 }
+
 
 func (pb *ProgressBar) IsVisible() bool {
 	return pb.isVisible
 }
 
+
 func (pb *ProgressBar) SetWidth(width int) {
 	pb.width = width
 }
+
 
 func (pb *ProgressBar) Render() string {
 	if !pb.isVisible {
@@ -47,6 +54,7 @@ func (pb *ProgressBar) Render() string {
 	}
 	
 	var result strings.Builder
+	
 	
 	var progress float64
 	if pb.isDragging {
@@ -61,6 +69,7 @@ func (pb *ProgressBar) Render() string {
 		progress = 0.0
 	}
 	
+	
 	currentTime := pb.position
 	totalTime := pb.duration
 	
@@ -72,17 +81,20 @@ func (pb *ProgressBar) Render() string {
 		formatDuration(currentTime), 
 		formatDuration(totalTime))
 	
+	
 	timeDisplayLen := len(strings.ReplaceAll(strings.ReplaceAll(timeStr, "[dim]", ""), "[white]", ""))
-	barWidth := pb.width - timeDisplayLen - 3 // 3 for spacing
+	barWidth := pb.width - timeDisplayLen - 3 
 	
 	if barWidth < 10 {
 		barWidth = 10
 	}
 	
+	
 	filledWidth := int(float64(barWidth) * progress)
 	
 	result.WriteString(timeStr)
 	result.WriteString(" [")
+	
 	
 	for i := 0; i < barWidth; i++ {
 		if i < filledWidth {
@@ -104,6 +116,7 @@ func (pb *ProgressBar) Render() string {
 	
 	result.WriteString("]")
 	
+	
 	if pb.duration > 0 {
 		percentage := int(progress * 100)
 		result.WriteString(fmt.Sprintf(" [dim]%d%%[white]", percentage))
@@ -112,22 +125,27 @@ func (pb *ProgressBar) Render() string {
 	return result.String()
 }
 
+
+
 func (pb *ProgressBar) HandleClick(x, y, maxWidth int) (float64, bool) {
 	if !pb.isVisible || pb.duration == 0 {
 		return 0, false
 	}
+	
 	
 	timeStr := fmt.Sprintf("%s / %s", 
 		formatDuration(pb.position), 
 		formatDuration(pb.duration))
 	
 	timeDisplayLen := len(timeStr)
-	barStart := timeDisplayLen + 2 // " [" before the bar
+	barStart := timeDisplayLen + 2 
+	
 	
 	barWidth := maxWidth - timeDisplayLen - 3
 	if barWidth < 10 {
 		barWidth = 10
 	}
+	
 	
 	if x >= barStart && x < barStart+barWidth {
 		clickPos := x - barStart
@@ -145,10 +163,12 @@ func (pb *ProgressBar) HandleClick(x, y, maxWidth int) (float64, bool) {
 	return 0, false
 }
 
+
 func (pb *ProgressBar) StartDrag(position float64) {
 	pb.isDragging = true
 	pb.dragPos = position
 }
+
 
 func (pb *ProgressBar) UpdateDrag(position float64) {
 	if pb.isDragging {
@@ -160,6 +180,7 @@ func (pb *ProgressBar) UpdateDrag(position float64) {
 		}
 	}
 }
+
 
 func (pb *ProgressBar) EndDrag() (time.Duration, bool) {
 	if !pb.isDragging {
@@ -175,9 +196,11 @@ func (pb *ProgressBar) EndDrag() (time.Duration, bool) {
 	return 0, false
 }
 
+
 func (pb *ProgressBar) IsDragging() bool {
 	return pb.isDragging
 }
+
 
 func (pb *ProgressBar) GetProgress() float64 {
 	if pb.duration == 0 {
@@ -190,6 +213,7 @@ func (pb *ProgressBar) GetProgress() float64 {
 	
 	return float64(pb.position) / float64(pb.duration)
 }
+
 
 func formatDuration(d time.Duration) string {
 	if d < 0 {

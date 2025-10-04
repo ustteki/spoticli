@@ -13,7 +13,7 @@ import (
 
 func main() {
 	var musicDir string
-	flag.StringVar(&musicDir, "dir", "./music", "Directory containing MP3 files")
+	flag.StringVar(&musicDir, "dir", filepath.Join(os.Getenv("HOME"), "Music", "spotify-cli"), "Directory containing MP3 files")
 	flag.Parse()
 
 	
@@ -56,7 +56,7 @@ func main() {
 	defer audioPlayer.Close()
 
 	
-	app := ui.NewApp(songs, audioPlayer)
+	app := ui.NewApp(songs, audioPlayer, lib)
 	
 	
 	if err := app.Run(); err != nil {

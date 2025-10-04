@@ -130,7 +130,7 @@ func (p *Player) Resume() {
 	}
 }
 
-
+// Stop stops the current playback completely (original behavior)
 func (p *Player) Stop() {
 	if p.player != nil {
 		p.player.Close()
@@ -141,6 +141,28 @@ func (p *Player) Stop() {
 	p.currentSong = ""
 	p.position = 0
 	p.pausedTime = 0
+}
+
+// PauseAndStop pauses the song and shows it as stopped, but keeps position
+func (p *Player) PauseAndStop() {
+	if p.player != nil && p.isPlaying {
+		// Update position before pausing
+		p.updatePosition()
+		p.player.Pause()
+		p.isPaused = true
+		p.isPlaying = false // Show as stopped but keep the song loaded
+	}
+}
+
+// ResumeFromStop resumes from a paused/stopped state
+func (p *Player) ResumeFromStop() {
+	if p.player != nil && p.currentSong != "" && !p.isPlaying {
+		p.player.Play()
+		p.isPlaying = true
+		p.isPaused = false
+		// Adjust start time to account for the current position
+		p.startTime = time.Now().Add(-p.position)
+	}
 }
 
 
