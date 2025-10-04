@@ -22,16 +22,13 @@ type App struct {
 	player      *player.Player
 	currentIdx  int
 	
-	// Library management
-	library      *library.Library
+		library      *library.Library
 	currentItems []library.LibraryItem
 	
-	// Settings and components
-	settingsManager *settings.Manager
+		settingsManager *settings.Manager
 	progressBar     *progressbar.ProgressBar
 	
-	// UI Components
-	songList        *tview.List
+		songList        *tview.List
 	infoPanel       *tview.TextView
 	statusBar       *tview.TextView
 	helpText        *tview.TextView
@@ -39,16 +36,13 @@ type App struct {
 	progressPanel   *tview.TextView
 	breadcrumb      *tview.TextView
 	
-	// State
-	isSearchMode bool
+		isSearchMode bool
 	filteredSongs []library.Song
 }
 
 
-// NewApp creates a new application instance
 func NewApp(songs []library.Song, audioPlayer *player.Player, lib *library.Library) *App {
-	// Initialize settings manager
-	settingsManager := settings.NewManager()
+		settingsManager := settings.NewManager()
 	
 	app := &App{
 		app:             tview.NewApplication(),
@@ -58,14 +52,11 @@ func NewApp(songs []library.Song, audioPlayer *player.Player, lib *library.Libra
 		filteredSongs:   songs,
 		library:         lib,
 		settingsManager: settingsManager,
-		progressBar:     progressbar.NewProgressBar(80),  // Default width
-	}
+		progressBar:     progressbar.NewProgressBar(80),  	}
 	
-	// Load current items from library
-	items, err := lib.GetCurrentItems()
+		items, err := lib.GetCurrentItems()
 	if err != nil {
-		// Fallback to songs only
-		app.currentItems = make([]library.LibraryItem, 0)
+				app.currentItems = make([]library.LibraryItem, 0)
 		for _, song := range songs {
 			app.currentItems = append(app.currentItems, library.LibraryItem{
 				Type: library.ItemTypeSong,
@@ -82,7 +73,6 @@ func NewApp(songs []library.Song, audioPlayer *player.Player, lib *library.Libra
 }
 
 
-// Run starts the application
 func (a *App) Run() error {
 	a.setupUI()
 	a.setupKeyBindings()
@@ -91,8 +81,7 @@ func (a *App) Run() error {
 	a.updateInfoPanel()
 	a.updateStatusBar()
 	
-	// Start a goroutine to update the UI periodically
-	go a.updateLoop()
+		go a.updateLoop()
 	
 	return a.app.Run()
 }
@@ -229,8 +218,7 @@ func (a *App) setupKeyBindings() {
 		return event
 	})
 	
-	// Song list selection handler
-	a.songList.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+		a.songList.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
 		a.handleSelection()
 	})
 }
@@ -262,14 +250,12 @@ func (a *App) updateInfoPanel() {
 	state := a.player.GetState()
 	
 	if state.CurrentSong == "" {
-		// Show currently selected item info
-		currentIdx := a.songList.GetCurrentItem()
+				currentIdx := a.songList.GetCurrentItem()
 		if currentIdx >= 0 && currentIdx < len(a.currentItems) {
 			item := a.currentItems[currentIdx]
 			
 			if item.Type == library.ItemTypeFolder {
-				// Show folder info
-				var info strings.Builder
+								var info strings.Builder
 				if item.Name == ".." {
 					info.WriteString("[blue]📁 Parent Directory[white]\n\n")
 					info.WriteString("[dim]Press Enter to go back[white]")
@@ -280,13 +266,11 @@ func (a *App) updateInfoPanel() {
 				}
 				a.infoPanel.SetText(info.String())
 			} else if item.Song != nil {
-				// Show song info
-				song := item.Song
+								song := item.Song
 				var info strings.Builder
 				info.WriteString("[yellow]Selected:[white]\n")
 				
-				// Add album art if available
-				if song.AlbumArt != nil {
+								if song.AlbumArt != nil {
 					info.WriteString(song.AlbumArt.GetColorizedASCII())
 					info.WriteString("\n\n")
 				}
@@ -310,8 +294,7 @@ func (a *App) updateInfoPanel() {
 			a.infoPanel.SetText("[red]No item selected[white]")
 		}
 	} else {
-		// Show currently playing song info
-		var currentSong *library.Song
+				var currentSong *library.Song
 		for _, song := range a.songs {
 			if song.FilePath == state.CurrentSong {
 				currentSong = &song
@@ -331,8 +314,7 @@ func (a *App) updateInfoPanel() {
 			var info strings.Builder
 			info.WriteString(status + "\n")
 			
-			// Add album art if available
-			if currentSong.AlbumArt != nil {
+						if currentSong.AlbumArt != nil {
 				info.WriteString(currentSong.AlbumArt.GetColorizedASCII())
 				info.WriteString("\n\n")
 			}
@@ -435,8 +417,7 @@ func (a *App) previousSong() {
 
 func (a *App) stopPlayback() {
 	a.player.Stop()
-	// Don't change selection, just refresh the display
-	a.populateLibraryList()
+		a.populateLibraryList()
 	a.updateInfoPanel()
 }
 
@@ -683,7 +664,6 @@ func repeatModeToString(mode settings.RepeatMode) string {
 	}
 }
 
-// populateLibraryList populates the list with current library items (folders and songs)
 func (a *App) populateLibraryList() {
 	a.songList.Clear()
 	
@@ -699,13 +679,11 @@ func (a *App) populateLibraryList() {
 				secondaryText = fmt.Sprintf("%d songs", item.SongCount)
 			}
 		} else {
-			// Song item
-			song := item.Song
+						song := item.Song
 			mainText = fmt.Sprintf("%s - %s", song.Artist, song.Title)
 			secondaryText = fmt.Sprintf("%s | %s", song.Album, a.formatDuration(song.Duration))
 			
-			// Highlight currently playing song
-			if a.player.GetCurrentSong() == song.FilePath {
+						if a.player.GetCurrentSong() == song.FilePath {
 				mainText = fmt.Sprintf("[yellow]♪ %s[white]", mainText)
 				a.songList.SetCurrentItem(i)
 			}
@@ -715,7 +693,6 @@ func (a *App) populateLibraryList() {
 	}
 }
 
-// updateBreadcrumb updates the breadcrumb navigation
 func (a *App) updateBreadcrumb() {
 	if a.library == nil {
 		a.breadcrumb.SetText(" [dim]No library loaded[white]")
@@ -730,7 +707,6 @@ func (a *App) updateBreadcrumb() {
 	}
 }
 
-// handleSelection handles both folder navigation and song playing
 func (a *App) handleSelection() {
 	currentIdx := a.songList.GetCurrentItem()
 	if currentIdx < 0 || currentIdx >= len(a.currentItems) {
@@ -740,15 +716,13 @@ func (a *App) handleSelection() {
 	item := a.currentItems[currentIdx]
 	
 	if item.Type == library.ItemTypeFolder {
-		// Navigate to folder
-		err := a.library.NavigateToFolder(item.Path)
+				err := a.library.NavigateToFolder(item.Path)
 		if err != nil {
 			a.statusBar.SetText(fmt.Sprintf(" [red]Error: %v[white]", err))
 			return
 		}
 		
-		// Update current items
-		items, err := a.library.GetCurrentItems()
+				items, err := a.library.GetCurrentItems()
 		if err != nil {
 			a.statusBar.SetText(fmt.Sprintf(" [red]Error loading folder: %v[white]", err))
 			return
@@ -760,12 +734,10 @@ func (a *App) handleSelection() {
 		a.updateInfoPanel()
 		
 	} else {
-		// Play song
-		a.playSelectedSong(item.Song)
+				a.playSelectedSong(item.Song)
 	}
 }
 
-// navigateBack goes back to parent directory
 func (a *App) navigateBack() {
 	if a.library == nil || !a.library.CanGoBack() {
 		return
@@ -780,8 +752,7 @@ func (a *App) navigateBack() {
 		return
 	}
 	
-	// Update current items
-	items, err := a.library.GetCurrentItems()
+		items, err := a.library.GetCurrentItems()
 	if err != nil {
 		a.statusBar.SetText(fmt.Sprintf(" [red]Error loading folder: %v[white]", err))
 		return
@@ -793,50 +764,42 @@ func (a *App) navigateBack() {
 	a.updateInfoPanel()
 }
 
-// playSelectedSong plays a specific song
 func (a *App) playSelectedSong(song *library.Song) {
 	if song == nil {
 		return
 	}
 	
-	// Find the song in the full song list to get the index
-	for i, s := range a.songs {
+		for i, s := range a.songs {
 		if s.FilePath == song.FilePath {
 			a.currentIdx = i
 			break
 		}
 	}
 	
-	// Play the song
-	err := a.player.Play(song.FilePath)
+		err := a.player.Play(song.FilePath)
 	if err != nil {
 		a.statusBar.SetText(fmt.Sprintf(" [red]Error playing: %v[white]", err))
 		return
 	}
 	
-	a.populateLibraryList() // Refresh to show playing indicator
-	a.updateInfoPanel()
+	a.populateLibraryList() 	a.updateInfoPanel()
 }
 
-// getCurrentPlayableSongs returns songs available in the current context
 func (a *App) getCurrentPlayableSongs() []library.Song {
-	// If we're in a folder, get songs from that folder
-	if a.library != nil {
+		if a.library != nil {
 		folderSongs := a.library.GetSongsInCurrentFolder()
 		if len(folderSongs) > 0 {
 			return folderSongs
 		}
 	}
 	
-	// Fallback to filtered songs or all songs
-	if len(a.filteredSongs) > 0 {
+		if len(a.filteredSongs) > 0 {
 		return a.filteredSongs
 	}
 	
 	return a.songs
 }
 
-// playSpecificSong plays a specific song and updates UI
 func (a *App) playSpecificSong(song *library.Song) {
 	if song == nil {
 		return
@@ -848,12 +811,10 @@ func (a *App) playSpecificSong(song *library.Song) {
 		return
 	}
 	
-	// Update UI to reflect the new playing song
-	a.populateLibraryList()
+		a.populateLibraryList()
 	a.updateInfoPanel()
 	
-	// Try to highlight the playing song in the list
-	for i, item := range a.currentItems {
+		for i, item := range a.currentItems {
 		if item.Type == library.ItemTypeSong && item.Song != nil && item.Song.FilePath == song.FilePath {
 			a.songList.SetCurrentItem(i)
 			break
