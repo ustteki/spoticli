@@ -36,7 +36,8 @@ A terminal-based music player written in Go that brings the Spotify experience t
 ### Quick Install
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/ustteki/spoticli
+
 cd spoticli
 
 # Build and install globally
